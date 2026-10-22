@@ -1,4 +1,26 @@
-*.json
+# Entorno virtual y Python
 .venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.env
+
+# Credenciales y archivos sensibles
+*.json
 *.jsonl
-*.pyc
+*.key
+*.pem
+
+# Jupyter Notebooks (checkpoints temporales)
+.ipynb_checkpoints/
+
+# dbt artifacts (CRÍTICO: nunca versionar target/ ni dbt_packages/)
+target/
+dbt_packages/
+logs/
+dbt.log
+
+# IDEs y SO
+.vscode/
+.idea/
+.DS_Store
