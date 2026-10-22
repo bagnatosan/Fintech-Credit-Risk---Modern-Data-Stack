@@ -5,9 +5,8 @@ from pathlib import Path
 from google.cloud import bigquery
 from google.oauth2 import service_account
 
-# Ruta a credenciales de GCP (asegurate de apuntar a tu archivo JSON)
 KEY_PATH = os.getenv("GCP_KEY_PATH", "gcp-credentials.json")
-PROJECT_ID = os.getenv("GCP_PROJECT_ID", "TU_PROJECT_ID_DE_GCP")
+PROJECT_ID = os.getenv("GCP_PROJECT_ID", "fintech-credit-analytics")
 DATASET_ID = "raw_vault"
 LOCATION = "US"
 
@@ -25,14 +24,10 @@ def obtener_cliente_bigquery():
 
 def crear_dataset_si_no_existe(client):
     dataset_ref = bigquery.DatasetReference(PROJECT_ID, DATASET_ID)
-    try:
-        client.get_dataset(dataset_ref)
-        print(f"[*] Dataset '{DATASET_ID}' ya existe.")
-    except Exception:
-        dataset = bigquery.Dataset(dataset_ref)
-        dataset.location = LOCATION
-        client.create_dataset(dataset)
-        print(f"[✓] Dataset '{DATASET_ID}' creado exitosamente en {LOCATION}.")
+    dataset = bigquery.Dataset(dataset_ref)
+    dataset.location = LOCATION
+    client.create_dataset(dataset, exists_ok=True)
+    print(f"[✓] Dataset '{DATASET_ID}' verificado y listo.")
 
 def cargar_tabla_cruda(client, nombre_tabla, archivo_jsonl):
     filepath = DATA_DIR / archivo_jsonl
@@ -49,10 +44,6 @@ def cargar_tabla_cruda(client, nombre_tabla, archivo_jsonl):
         bigquery.SchemaField("payload_json", "STRING", mode="REQUIRED")
     ]
 
-    # Crear tabla vacía si no existe
-    table = bigquery.Table(table_id, schema=schema)
-    client.create_table(table, exists_ok=True)
-
     print(f"[*] Leyendo y empaquetando {archivo_jsonl}...")
     rows_to_insert = []
     timestamp_actual = datetime.now(timezone.utc).isoformat()
@@ -67,18 +58,18 @@ def cargar_tabla_cruda(client, nombre_tabla, archivo_jsonl):
                     "payload_json": line.strip()
                 })
 
-    print(f"[*] Insertando {len(rows_to_insert)} registros en {table_id}...")
-    
-    # Ingesta en bloques de 5.000 para optimizar tráfico
-    batch_size = 5000
-    for i in range(0, len(rows_to_insert), batch_size):
-        chunk = rows_to_insert[i:i + batch_size]
-        errors = client.insert_rows_json(table_id, chunk)
-        if errors:
-            print(f"[!] Errores en lote {i}: {errors}")
-            return
+    print(f"[*] Ejecutando Load Job batch de {len(rows_to_insert)} registros en {table_id}...")
 
-    print(f"[✓] Carga completada en {table_id}.")
+    # Configuración de Load Job (compatible 100% con Free Tier Sandbox)
+    job_config = bigquery.LoadJobConfig(
+        schema=schema,
+        write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE
+    )
+
+    job = client.load_table_from_json(rows_to_insert, table_id, job_config=job_config)
+    job.result()  # Espera a que termine la carga batch
+
+    print(f"[✓] Carga completada en {table_id} ({job.output_rows} filas persistidas).")
 
 if __name__ == "__main__":
     client = obtener_cliente_bigquery()
