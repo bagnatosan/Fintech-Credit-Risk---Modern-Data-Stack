@@ -1,0 +1,31 @@
+version: 2
+
+sources:
+  - name: raw_vault
+    database: fintech-credit-analytics
+    schema: raw_vault
+    description: "Capa Bronze con datos transaccionales crudos de la fintech"
+    tables:
+      - name: raw_solicitudes
+        description: "Eventos de solicitudes de préstamos (JSON crudo)"
+        columns:
+          - name: id_ingesta
+          - name: ingested_at
+          - name: source_system
+          - name: payload_json
+
+      - name: raw_clientes
+        description: "Historial de clientes con variaciones de score e ingresos (SCD2 en JSON)"
+        columns:
+          - name: id_ingesta
+          - name: ingested_at
+          - name: source_system
+          - name: payload_json
+
+      - name: raw_pagos
+        description: "Transacciones de cuotas y cobranzas (JSON crudo)"
+        columns:
+          - name: id_ingesta
+          - name: ingested_at
+          - name: source_system
+          - name: payload_json
