@@ -1,0 +1,41 @@
+version: 2
+
+models:
+  - name: stg_solicitudes
+    description: "Solicitudes de crédito limpias y tipadas con metadatos de auditoría"
+    columns:
+      - name: id_solicitud
+        description: "Identificador único de la solicitud"
+        tests:
+          - not_null
+          - unique
+      - name: id_cliente
+        tests:
+          - not_null
+      - name: estado_solicitud
+        tests:
+          - accepted_values:
+              values: ['APROBADO', 'RECHAZADO', 'PENDIENTE']
+
+  - name: stg_pagos
+    description: "Cuotas y transacciones de cobro de préstamos"
+    columns:
+      - name: id_pago
+        description: "Clave primaria transaccional de la cuota"
+        tests:
+          - not_null
+          - unique
+      - name: id_solicitud
+        tests:
+          - not_null
+
+  - name: stg_clientes
+    description: "Historial de clientes en Staging (contiene versiones SCD2)"
+    columns:
+      - name: id_ingesta
+        tests:
+          - not_null
+          - unique
+      - name: id_cliente
+        tests:
+          - not_null
