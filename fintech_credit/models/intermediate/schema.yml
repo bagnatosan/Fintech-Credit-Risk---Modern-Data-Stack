@@ -1,0 +1,28 @@
+version: 2
+
+models:
+  - name: int_pagos_por_solicitud
+    description: "Agregación de cuotas a nivel de préstamo (1 fila = 1 id_solicitud). Resuelve el Fan-Out."
+    columns:
+      - name: id_solicitud
+        description: "Clave primaria agregada del préstamo"
+        tests:
+          - not_null
+          - unique
+
+  - name: int_solicitudes_enriquecidas
+    description: "Modelo unificado Silver: Solicitudes con métricas de mora, cobranzas y flags de negocio"
+    columns:
+      - name: id_solicitud
+        description: "Clave primaria del crédito"
+        tests:
+          - not_null
+          - unique
+      - name: id_cliente
+        tests:
+          - not_null
+      - name: estado_operativo_credito
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['VIGENTE_AL_DIA', 'EN_MORA', 'CANCELADO', 'RECHAZADO', 'PENDIENTE']
