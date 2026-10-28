@@ -1,0 +1,52 @@
+version: 2
+
+models:
+  - name: dim_clientes
+    description: "Dimensión Clientes Gold: Deduplicada (SCD2 resuelto con versión más reciente)"
+    columns:
+      - name: id_cliente
+        description: "Clave primaria única del cliente"
+        tests:
+          - not_null
+          - unique
+      - name: score_bancario
+        description: "Score crediticio del cliente en su última actualización"
+        tests:
+          - not_null
+
+  - name: fct_prestamos
+    description: "Tabla de Hechos Gold: Solicitudes de crédito, saldos, estado de mora e indicadores de riesgo"
+    columns:
+      - name: id_solicitud
+        description: "Clave primaria del hecho (1 fila = 1 crédito)"
+        tests:
+          - not_null
+          - unique
+      - name: id_cliente
+        description: "Clave foránea hacia dim_clientes"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_clientes')
+                field: id_cliente
+      - name: id_canal
+        description: "Clave foránea hacia dim_canales (-1 para huérfanos o desconocidos)"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_canales')
+                field: id_canal
+      - name: monto_otorgado
+        tests:
+          - not_null
+
+  - name: dim_canales
+    description: "Dimensión Canales Gold: Catálogo de originación con fila comodín -1 para huérfanos"
+    columns:
+      - name: id_canal
+        description: "Clave primaria del canal"
+        tests:
+          - not_null
+          - unique
