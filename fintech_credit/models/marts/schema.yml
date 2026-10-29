@@ -31,7 +31,7 @@ models:
                 to: ref('dim_clientes')
                 field: id_cliente
       - name: id_canal
-        description: "Clave foránea hacia dim_canales (-1 para huérfanos o desconocidos)"
+        description: "Clave foránea hacia dim_canales (mapeado a -1 si es desconocido)"
         tests:
           - not_null
           - relationships:
@@ -50,3 +50,55 @@ models:
         tests:
           - not_null
           - unique
+
+  - name: dim_calendario
+    description: "Dimensión Calendario Gold: Eje temporal generado dinámicamente para análisis de cohortes y vintage"
+    columns:
+      - name: fecha_key
+        description: "Clave primaria única de la fecha (DATE)"
+        tests:
+          - not_null
+          - unique
+      - name: anio
+        description: "Año numérico"
+        tests:
+          - not_null
+      - name: anio_mes
+        description: "Formato YYYY-MM para agrupación por cohortes (Vintage Analysis)"
+        tests:
+          - not_null
+  - name: fct_pagos_cuotas
+    description: "Tabla de Hechos Transaccional Gold: Cuotas, fechas de vencimiento, cobros reales y flags de mora por cuota"
+    columns:
+      - name: id_pago
+        description: "Clave primaria única del pago/cuota"
+        tests:
+          - not_null
+          - unique
+      - name: id_solicitud
+        description: "Clave foránea hacia fct_prestamos"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('fct_prestamos')
+                field: id_solicitud
+      - name: id_cliente
+        description: "Clave foránea hacia dim_clientes"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_clientes')
+                field: id_cliente
+      - name: id_canal
+        description: "Clave foránea hacia dim_canales"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_canales')
+                field: id_canal
+      - name: monto_cuota
+        tests:
+          - not_null
