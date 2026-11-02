@@ -13,7 +13,6 @@ WITH pagos AS (
     FROM {{ ref('stg_pagos') }}
 ),
 
--- Filtramos solo los préstamos válidos ya consolidados en la Gold
 prestamos AS (
     SELECT 
         id_solicitud,
@@ -23,37 +22,39 @@ prestamos AS (
 )
 
 SELECT
-    -- Clave Primaria del Hecho Transaccional
     p.id_pago,
-
-    -- Claves Foráneas (FK) a Dimensiones y Hecho de Préstamos
     p.id_solicitud,
     pr.id_cliente,
     pr.id_canal,
 
-    -- Atributos de la Cuota
     p.numero_cuota,
     p.estado_pago,
-    
-    -- Fechas de Vencimiento y Cobro
     p.fecha_vencimiento,
     p.fecha_pago_real,
-
-    -- Métricas Monetarias
     p.monto_cuota,
 
-    -- Indicadores de Riesgo por Cuota
-    p.dias_mora,
+    -- Cálculo dinámico de días de mora según fecha real de cobro o estado impago
     CASE 
-        WHEN p.dias_mora > 0 THEN TRUE 
+        WHEN p.estado_pago = 'PAGADO' AND p.fecha_pago_real > p.fecha_vencimiento 
+            THEN DATE_DIFF(p.fecha_pago_real, p.fecha_vencimiento, DAY)
+        WHEN p.estado_pago != 'PAGADO' AND CURRENT_DATE() > p.fecha_vencimiento 
+            THEN DATE_DIFF(CURRENT_DATE(), p.fecha_vencimiento, DAY)
+        ELSE 0 
+    END AS dias_mora,
+
+    CASE 
+        WHEN (
+            (p.estado_pago = 'PAGADO' AND p.fecha_pago_real > p.fecha_vencimiento) OR 
+            (p.estado_pago != 'PAGADO' AND CURRENT_DATE() > p.fecha_vencimiento)
+        ) THEN TRUE 
         ELSE FALSE 
     END AS flag_cuota_con_mora,
+
     CASE 
         WHEN p.estado_pago != 'PAGADO' AND CURRENT_DATE() > p.fecha_vencimiento THEN TRUE 
         ELSE FALSE 
     END AS flag_cuota_vencida_impaga
 
 FROM pagos p
--- INNER JOIN elimina las cuotas de solicitudes rechazadas o inexistentes en fct_prestamos
 INNER JOIN prestamos pr
     ON p.id_solicitud = pr.id_solicitud
