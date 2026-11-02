@@ -1,70 +1,48 @@
 {{ config(
     materialized='table',
-    partition_by={
-      "field": "fecha_desembolso",
-      "data_type": "date",
-      "granularity": "day"
-    },
-    cluster_by=["estado_operativo_credito", "id_canal"]
 ) }}
 
-WITH solicitudes_enriquecidas AS (
+WITH solicitudes AS (
     SELECT * 
-    FROM {{ ref('int_solicitudes_enriquecidas') }}
+    FROM {{ ref('stg_solicitudes') }}
+    WHERE UPPER(TRIM(estado_solicitud)) = 'APROBADO'
 ),
 
-clientes AS (
-    SELECT id_cliente 
-    FROM {{ ref('dim_clientes') }}
+pagos_agrupados AS (
+    SELECT * 
+    FROM {{ ref('int_pagos_por_solicitud') }}
 ),
 
-fct_prestamos AS (
-    SELECT
-        -- Clave Primaria del Hecho
-        se.id_solicitud,
-
-        -- Claves Foráneas (FK) a Dimensiones
-        se.id_cliente,
-        CASE 
-            WHEN se.id_canal = 999 OR se.id_canal IS NULL THEN -1
-            ELSE se.id_canal 
-        END AS id_canal,
-
-        -- Fechas de Control de Ciclo de Vida
-        se.fecha_solicitud,
-        se.fecha_desembolso,
-
-        -- Atributos de Estado y Calidad de Cartera
-        se.estado_solicitud,
-        se.estado_operativo_credito,
-        se.flag_default_tecnico,
-
-        -- Condiciones Contractuales de Origen
-        se.tasa_nominal_anual,
-        se.plazo_meses,
-
-        -- Métricas Cuantitativas y Exposición Monetaria
-        se.monto_solicitado,
-        se.monto_otorgado,
-        se.monto_total_pagado,
-        se.monto_saldo_pendiente,
-
-        -- Métricas de Desempeño y Morosidad
-        se.dias_mora_maxima,
-        se.total_cuotas_generadas,
-        se.cuotas_pagadas,
-        se.cuotas_en_mora,
-        se.cuotas_pendientes,
-
-        -- Hitos de Cobranza
-        se.primera_cuota_vencimiento,
-        se.ultima_cuota_vencimiento,
-        se.ultimo_pago_realizado
-
-    FROM solicitudes_enriquecidas se
-        INNER JOIN clientes c
-        ON se.id_cliente = c.id_cliente
+canales AS (
+    SELECT id_canal 
+    FROM {{ ref('dim_canales') }}
 )
 
-SELECT * 
-FROM fct_prestamos
+SELECT
+    s.id_solicitud,
+    s.id_cliente,
+    
+    CASE 
+        WHEN c.id_canal IS NOT NULL THEN s.id_canal
+        ELSE -1 
+    END AS id_canal,
+
+    s.estado_solicitud AS estado_operativo_credito,
+    s.fecha_solicitud,
+    COALESCE(s.fecha_desembolso, s.fecha_solicitud) AS fecha_desembolso,
+    
+    COALESCE(s.monto_otorgado, s.monto_solicitado, 0) AS monto_otorgado,
+    COALESCE(p.monto_total_pagado, 0) AS monto_total_pagado,
+    COALESCE(p.monto_saldo_pendiente, 0) AS monto_saldo_pendiente,
+    COALESCE(p.dias_mora_maxima, 0) AS dias_mora_maxima,
+    
+    CASE 
+        WHEN COALESCE(p.dias_mora_maxima, 0) >= 90 THEN TRUE 
+        ELSE FALSE 
+    END AS flag_default_tecnico
+
+FROM solicitudes s
+LEFT JOIN pagos_agrupados p
+    ON s.id_solicitud = p.id_solicitud
+LEFT JOIN canales c
+    ON s.id_canal = c.id_canal

@@ -27,8 +27,17 @@ parsed_and_cast AS (
 
         -- Dimensiones y estados
         UPPER(TRIM(JSON_VALUE(payload_json, '$.estado'))) AS estado_solicitud,
-        SAFE_CAST(JSON_VALUE(payload_json, '$.fecha_solicitud') AS DATE) AS fecha_solicitud,
-        SAFE_CAST(JSON_VALUE(payload_json, '$.fecha_desembolso') AS DATE) AS fecha_desembolso
+        
+        -- Parseo resiliente a fecha simple y timestamp con hora
+        COALESCE(
+            SAFE_CAST(JSON_VALUE(payload_json, '$.fecha_solicitud') AS DATE),
+            DATE(SAFE_CAST(JSON_VALUE(payload_json, '$.fecha_solicitud') AS TIMESTAMP))
+        ) AS fecha_solicitud,
+        
+        COALESCE(
+            SAFE_CAST(JSON_VALUE(payload_json, '$.fecha_desembolso') AS DATE),
+            DATE(SAFE_CAST(JSON_VALUE(payload_json, '$.fecha_desembolso') AS TIMESTAMP))
+        ) AS fecha_desembolso
 
     FROM source_data
 )
