@@ -97,51 +97,75 @@ Consolidando los datos transformados a través de la capa semántica (`rpt_`) y 
 
 ```text
 Fintech-Credit-Risk---Modern-Data-Stack/
+├── .gitattributes
 ├── .gitignore
 ├── README.md
 ├── requirements.txt
-├── extractors/                         <-- Scripts de extracción e ingesta cruda
-│   ├── mock_fintech_generator.py       <-- Generador sintético de eventos con Faker
-│   └── load_to_bigquery.py             <-- Carga batch al dataset raw_vault
-├── notebooks/                          <-- EDA inicial y diagnóstico de fuentes
-│   └── 01_eda_credit_risk.ipynb        <-- Auditoría de calidad, outliers y mora
-└── fintech_credit/                     <-- Proyecto dbt Core
+├── assets/
+│   └── dashboard.gif                    <-- Vista previa animada del dashboard
+├── dashboards/
+│   └── fintech_credit_analysis.pbix      <-- Dashboard ejecutivo en Power BI
+├── extractors/                           <-- Scripts de extracción e ingesta cruda
+│   ├── mock_fintech_generator.py         <-- Generador sintético de eventos con Faker
+│   └── load_to_bigquery.py               <-- Carga batch al dataset raw_vault
+├── notebooks/                            <-- EDA inicial y diagnóstico de fuentes
+│   └── 01_eda_credit_risk.ipynb          <-- Auditoría de calidad, outliers y mora
+└── fintech_credit/                       <-- Proyecto dbt Core
     ├── .gitignore
-    ├── README.md                       <-- README estándar de dbt
-    ├── dbt_project.yml
-    ├── packages.yml
-    ├── package-lock.yml
-    ├── analyses/                       <-- Consultas ad-hoc
-    ├── macros/                         <-- Macros propias del proyecto
+    ├── README.md                         <-- README estándar de dbt
+    ├── analyses/
+    │   └── .gitkeep                      <-- Consultas ad-hoc (sin uso actual)
+    ├── dbt_project.yml                   <-- Configuración principal de dbt
+    ├── macros/
+    │   └── .gitkeep                      <-- Macros propias del proyecto
     ├── models/
-    │   ├── staging/                    <-- Capa Bronze (1:1 con raw_vault, parseo JSON)
-    │   │   ├── sources.yml
-    │   │   ├── schema.yml
+    │   ├── staging/                      <-- Bronze: 1:1 con raw_vault, parseo JSON
+    │   │   ├── sources.yml               <-- Declaración de fuentes BigQuery
+    │   │   ├── schema.yml                <-- Tests genéricos de staging
     │   │   ├── stg_solicitudes.sql
     │   │   ├── stg_clientes.sql
     │   │   └── stg_pagos.sql
-    │   ├── intermediate/               <-- Capa Silver (Fan-Out Fix y Lógica de Negocio)
+    │   ├── intermediate/                 <-- Silver: fan-out fix y lógica de negocio
     │   │   ├── schema.yml
     │   │   ├── int_pagos_por_solicitud.sql
     │   │   └── int_solicitudes_enriquecidas.sql
-    │   └── marts/                      <-- Capa Gold (Kimball Dimensional + Capa Semántica rpt_)
+    │   └── marts/                        <-- Gold: Kimball + capa semántica rpt_
     │       ├── schema.yml
-    │       ├── dim_calendario.sql      <-- Dimensión temporal dinámica
-    │       ├── dim_clientes.sql        <-- Deduplicación SCD2 (ROW_NUMBER)
-    │       ├── dim_canales.sql         <-- Catálogo con fila comodín id_canal = -1
-    │       ├── fct_prestamos.sql       <-- Hecho acumulativo (particionada por fecha_desembolso)
-    │       ├── fct_pagos_cuotas.sql    <-- Hecho transaccional atómico (días de mora dinámicos)
-    │       ├── rpt_vintage_analysis.sql <-- Matriz cohorte × MOB (mora 30+ acumulada)
+    │       ├── dim_calendario.sql        <-- Dimensión temporal dinámica
+    │       ├── dim_clientes.sql          <-- Deduplicación SCD2 (ROW_NUMBER)
+    │       ├── dim_canales.sql           <-- Catálogo con fila comodín id_canal = -1
+    │       ├── fct_prestamos.sql         <-- Hecho acumulativo (particionado por fecha_desembolso)
+    │       ├── fct_pagos_cuotas.sql      <-- Hecho transaccional atómico (días de mora dinámicos)
+    │       ├── rpt_vintage_analysis.sql  <-- Matriz cohorte × MOB (mora 30+ acumulada)
     │       └── rpt_resumen_riesgo_mora.sql <-- KPIs ejecutivos por canal (NPL 90+)
+    ├── package-lock.yml
+    ├── packages.yml
     ├── seeds/
+    │   └── .gitkeep                      <-- Sin seeds por ahora
     ├── snapshots/
-    └── tests/                          <-- Singular Data Tests (Reglas financieras)
+    │   └── .gitkeep                      <-- Sin snapshots; la SCD2 se resuelve en dim_clientes
+    └── tests/                            <-- Singular Data Tests (reglas financieras)
+        ├── .gitkeep
         ├── assert_data_interes_positiva.sql
         ├── assert_fecha_desembolso_valida.sql
         └── assert_pagos_consistentes.sql
 ```
 
-> La configuración de conexión (`profiles.yml`) vive en `~/.dbt/` y no se versiona en el repositorio porque contiene credenciales.
+### 🗂️ Guía rápida de carpetas
+
+| Ruta | Qué contiene / para qué sirve |
+| --- | --- |
+| `extractors/` | Scripts de Python que generan eventos sintéticos y los cargan en `raw_vault` (Bronze). |
+| `notebooks/` | EDA y diagnóstico de calidad de las fuentes antes de escribir modelos dbt. |
+| `fintech_credit/models/staging/` | Modelos `stg_`: transición Bronze → Silver, 1:1 con la fuente, sin joins ni agregaciones. |
+| `fintech_credit/models/intermediate/` | Modelos `int_`: lógica de negocio, cambio de granularidad y mitigación de *fan-out*. |
+| `fintech_credit/models/marts/` | Capa Gold: dimensiones (`dim_`), hechos (`fct_`) y capa semántica (`rpt_`) para BI. |
+| `fintech_credit/tests/` | *Singular tests* con reglas de negocio financieras. |
+| `fintech_credit/analyses/`, `macros/`, `seeds/`, `snapshots/` | Espacios de soporte de dbt; actualmente solo contienen `.gitkeep`. |
+| `dashboards/` | Archivo `.pbix` del dashboard ejecutivo de Power BI. |
+| `assets/` | Recursos visuales del repositorio, como el GIF de vista previa. |
+
+> **Archivos locales no versionados:** `.venv/`, `logs/`, `fintech_credit/target/`, `fintech_credit/dbt_packages/`, `gcp-credentials.json` y `.obsidian/`. No forman parte del repositorio; `gcp-credentials.json` contiene credenciales y está excluido por `.gitignore`.
 
 ---
 
