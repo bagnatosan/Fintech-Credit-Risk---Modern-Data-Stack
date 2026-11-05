@@ -1,21 +1,3 @@
----
-tags:
-  - project
-  - end-to-end
-  - modern-data-stack
-  - analytics-engineering
-  - gcp
-  - dbt
-  - bigquery
-  - python
-  - eda
-  - powerbi
-  - fintech
-status: completed
-created: 2026-10-12
-updated: 2026-11-04
----
-
 # 🚀 Fintech Credit Risk — Modern Data Stack (End-to-End Pipeline & Analytics)
 
 > **Pipeline Analítico Integral (GCP Free Tier, $0 USD)**: Plataforma analítica y de ingeniería de datos para evaluación de riesgo crediticio, seguimiento de mora y análisis de cosechas (*Vintage Analysis*) en una entidad fintech. El pipeline procesa eventos JSON crudos, resuelve granularidades de cuotas/préstamos y estructura modelos dimensionales Kimball servidos hacia una capa semántica (`rpt_`) consumida por un dashboard ejecutivo interactivo en Power BI.
