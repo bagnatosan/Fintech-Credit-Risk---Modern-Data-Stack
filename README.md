@@ -1,6 +1,6 @@
 # 🚀 Fintech Credit Risk — Modern Data Stack (End-to-End Pipeline & Analytics)
 
-> **Pipeline Analítico Integral (GCP Free Tier, $0 USD)**: Plataforma analítica y de ingeniería de datos para evaluación de riesgo crediticio, seguimiento de mora y análisis de cosechas (*Vintage Analysis*) en una entidad fintech. El pipeline procesa eventos JSON crudos, resuelve granularidades de cuotas/préstamos y estructura modelos dimensionales Kimball servidos hacia una capa semántica (`rpt_`) consumida por un dashboard ejecutivo interactivo en Power BI.
+> **Pipeline Analítico Integral (GCP)**: Plataforma analítica y de ingeniería de datos para evaluación de riesgo crediticio, seguimiento de mora y análisis de cosechas (*Vintage Analysis*) en una entidad fintech. El pipeline procesa eventos JSON crudos, resuelve granularidades de cuotas/préstamos y estructura modelos dimensionales Kimball servidos hacia una capa semántica (`rpt_`) consumida por un dashboard ejecutivo interactivo en Power BI.
 
 ![Demo Interactivo del Dashboard](assets/dashboard.gif)
 
